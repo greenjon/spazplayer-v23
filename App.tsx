@@ -142,17 +142,17 @@ const App: React.FC = () => {
       {/* Schedule Overlay */}
       <div 
         ref={scheduleRef}
-        className="absolute bottom-0 left-0 w-full md:w-auto md:min-w-[500px] md:max-w-3xl md:bottom-6 md:left-1/2 md:-translate-x-1/2 z-40 p-4 rounded-t-xl md:rounded-xl bg-slate-950/80 border-t md:border border-[#00FF00] backdrop-blur-md shadow-2xl pointer-events-auto"
+        className="absolute bottom-0 left-0 w-full md:w-auto md:min-w-[500px] md:max-w-3xl md:bottom-6 md:left-1/2 md:-translate-x-1/2 z-40 p-4 rounded-t-xl md:rounded-xl bg-slate-950/80 border-t-2 md:border-2 border-[#00FF00] backdrop-blur-md shadow-2xl pointer-events-auto"
       >
         {scheduleLoading && (
           <div className="text-[10px] font-mono text-cyan-500/50 animate-pulse text-center">Loading schedule...</div>
         )}
         
         {!scheduleLoading && !scheduleError && schedule.length > 0 && (
-          <div className="flex flex-col gap-2 w-full">
-            <h3 className="text-[10px] font-bold text-[#DFFF00] uppercase tracking-widest text-left mb-1 border-b border-slate-800/50 pb-2">Upcoming Shows</h3>
+          <div className="flex flex-col gap-1 w-full">
+            <h3 className="text-[10px] font-bold text-[#DFFF00] uppercase tracking-widest text-left mb-0.5 border-b border-slate-800/50 pb-1">Upcoming Shows</h3>
             {schedule.map((item, i) => (
-              <div key={i} className="text-[10px] md:text-xs font-mono leading-tight border-b border-slate-800/30 last:border-0 pb-1 last:pb-0 text-left">
+              <div key={i} className="text-[10px] md:text-xs font-mono leading-tight border-b border-slate-800/30 last:border-0 pb-0.5 last:pb-0 text-left">
                 <span className="text-[#00FF00] mr-2">{item.datePart}</span>
                 <span className="text-[#FF00FF] opacity-90">{item.startTime}</span>
                 <span className="text-[#DFFF00] px-1">–</span>
