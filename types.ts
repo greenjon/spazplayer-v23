@@ -17,6 +17,7 @@ export interface IcecastStats {
       listeners?: number;
     } | Array<{
       title?: string;
+      artist?: string;
       listeners?: number;
     }>;
   };

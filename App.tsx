@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ControlBar from './components/ControlBar';
 import Visualizer from './components/Visualizer';
-import { fetchStreamMetadata } from './services/radioService';
-import { StreamMetadata } from './types';
 import { useSchedule } from './components/useSchedule';
 
 const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [metadata, setMetadata] = useState<StreamMetadata | null>(null);
   const [isVisualizerEnabled, setIsVisualizerEnabled] = useState(true);
   
   // State to track the height of the bottom UI obstruction
@@ -16,6 +13,7 @@ const App: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const scheduleRef = useRef<HTMLDivElement>(null);
 
@@ -23,28 +21,29 @@ const App: React.FC = () => {
 
   // Initialize Audio Context and Analyzer
   const initAudio = () => {
-    if (audioContextRef.current) return;
+    if (audioContextRef.current || sourceNodeRef.current) return;
 
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext || (window as any).webkitAudioContext;
       const audioCtx = new AudioContextClass();
-      
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 2048; // Higher resolution for smoother wave
 
-      // Create source from the audio element
+      const analyserNode = audioCtx.createAnalyser();
+      analyserNode.fftSize = 2048;
+
       if (audioRef.current) {
-        // Important: CORS must be handled on the audio tag for this to work without tainting
         const source = audioCtx.createMediaElementSource(audioRef.current);
-        source.connect(analyser);
-        analyser.connect(audioCtx.destination);
-        
+
+        source.connect(analyserNode);
+        analyserNode.connect(audioCtx.destination);
+
         sourceNodeRef.current = source;
-        analyserRef.current = analyser;
+        analyserRef.current = analyserNode;
+        setAnalyser(analyserNode);
         audioContextRef.current = audioCtx;
       }
     } catch (e) {
-      console.error("Web Audio API not supported or initialization failed", e);
+      console.error("Web Audio API init failed", e);
     }
   };
 
@@ -71,19 +70,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', updateLayout);
   }, [schedule, scheduleLoading, scheduleError]);
 
-  // Metadata Fetching Loop
-  useEffect(() => {
-    const getMeta = async () => {
-      const data = await fetchStreamMetadata();
-      setMetadata(data);
-    };
-
-    getMeta(); // Initial fetch
-    const interval = setInterval(getMeta, 15000); // 15 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
   // Play/Pause Handler
   const togglePlay = async () => {
     if (!audioRef.current) return;
@@ -106,7 +92,8 @@ const App: React.FC = () => {
         await audioRef.current.play();
         setIsPlaying(true);
       } catch (err) {
-        console.error("Playback failed:", err);
+        // Log simple message for error to avoid circular JSON if err is an event
+        console.error("Playback failed");
       }
     }
   };
@@ -119,8 +106,9 @@ const App: React.FC = () => {
         crossOrigin="anonymous" // Essential for Web Audio API to work with external source
         preload="none"
         onEnded={() => setIsPlaying(false)}
-        onError={(e) => {
-            console.error("Audio error", e);
+        onError={() => {
+            // Prevent circular structure error by NOT logging the event object
+            console.error("Audio error occurred");
             setIsPlaying(false);
         }}
       >
@@ -132,13 +120,12 @@ const App: React.FC = () => {
       <ControlBar 
         isPlaying={isPlaying}
         onTogglePlay={togglePlay}
-        metadata={metadata}
         isVisualizerEnabled={isVisualizerEnabled}
-        onToggleVisualizer={() => setIsVisualizerEnabled(!isVisualizerEnabled)}
+        onToggleVisualizer={() => setIsVisualizerEnabled(v => !v)}
       />
 
       <Visualizer 
-        analyser={analyserRef.current}
+        analyser={analyser}
         isEnabled={isVisualizerEnabled}
         topMargin={80} // Height of ControlBar
         bottomMargin={bottomObstruction} // Height of Schedule overlay + padding
@@ -155,7 +142,7 @@ const App: React.FC = () => {
       {/* Schedule Overlay */}
       <div 
         ref={scheduleRef}
-        className="absolute bottom-0 left-0 w-full md:w-auto md:min-w-[500px] md:max-w-3xl md:bottom-6 md:left-1/2 md:-translate-x-1/2 z-40 p-4 rounded-t-xl md:rounded-xl bg-slate-950/80 border-t md:border border-[#DFFF00] backdrop-blur-md shadow-2xl pointer-events-auto"
+        className="absolute bottom-0 left-0 w-full md:w-auto md:min-w-[500px] md:max-w-3xl md:bottom-6 md:left-1/2 md:-translate-x-1/2 z-40 p-4 rounded-t-xl md:rounded-xl bg-slate-950/80 border-t md:border border-[#00FF00] backdrop-blur-md shadow-2xl pointer-events-auto"
       >
         {scheduleLoading && (
           <div className="text-[10px] font-mono text-cyan-500/50 animate-pulse text-center">Loading schedule...</div>

@@ -105,13 +105,14 @@ const Visualizer: React.FC<VisualizerProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (!isEnabled) return null;
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 w-full h-full pointer-events-none z-0"
-    />
+  <canvas
+  ref={canvasRef}
+  className={`fixed inset-0 w-full h-full pointer-events-none z-0 transition-opacity duration-300 ${
+    isEnabled ? 'opacity-100' : 'opacity-0'
+  }`}
+/>
   );
 };
 
