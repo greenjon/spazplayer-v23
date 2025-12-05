@@ -66,18 +66,36 @@ export function useSchedule() {
 
   useEffect(() => {
     let mounted = true;
+    const controller = new AbortController();
 
     async function fetchSchedule() {
       try {
         if (mounted) setLoading(true);
 
-        const response = await fetch("https://radio.spaz.org/djdash/droid");
+        console.log("SCHEDULE: starting fetch");
+
+        const timeoutId = setTimeout(() => {
+          console.log("SCHEDULE: timeout abort");
+          controller.abort();
+        }, 8000);
+
+        const response = await fetch("https://radio.spaz.org/djdash/droid", {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        console.log("SCHEDULE: response received", response.status);
 
         if (!response.ok) {
-          throw new Error(`HTTP error ${response.status}`);
+          throw new Error(`HTTP ${response.status}`);
         }
 
         const data: RawShow[] = await response.json();
+
+        console.log("SCHEDULE: json parsed", data.length);
 
         const formatted = data.map(show =>
           formatShowItem(
@@ -92,8 +110,10 @@ export function useSchedule() {
           setLoading(false);
         }
       } catch (err) {
+        console.error("SCHEDULE ERROR:", err);
+
         if (mounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load schedule');
+          setError(err instanceof Error ? err.message : "Failed to load schedule");
           setLoading(false);
         }
       }
@@ -103,6 +123,7 @@ export function useSchedule() {
 
     return () => {
       mounted = false;
+      controller.abort();
     };
   }, []);
 
